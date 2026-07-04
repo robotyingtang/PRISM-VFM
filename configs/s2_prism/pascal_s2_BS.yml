@@ -1,0 +1,67 @@
+results_dir: ./results/
+
+dataset: pascalcontext
+tr_batch: 32
+val_batch: 32
+nworkers: 4
+task_dict:
+  semseg: 1
+  human_parts: 1
+  normals: 1
+  edge: 1
+  sal: 1
+teachers:
+  dinov2:
+    backbone_type: dinov2_base
+    checkpoint_path: pretrain/vfm/dinov2_vitb14_pretrain.pth
+    embed_dim: 768
+  clip:
+    backbone_type: timmclip_base
+    checkpoint_path: pretrain/vfm/vit_base_patch16_clip_384.bin
+    embed_dim: 768
+  sam:
+    backbone_type: sam_base
+    checkpoint_path: pretrain/vfm/sam_vit_b_01ec64.pth
+    embed_dim: 768
+student:
+  backbone:
+    backbone_type: condition_moe_prism
+    vit_name: vit_small
+    down_ratio: 4
+    aligner: False
+    freeze_vit: False
+
+    moe_type: gated
+    router_type: no_structure_router
+    gate_constraint_ranges: [ [ 0.5, 1.0 ],
+                              [ 0.5, 1.0 ],
+                              [ 0.5, 1.0 ],
+                              [ 0.5, 1.0 ] ]
+
+    condition_dim:
+    num_moe_experts: 15
+    expert_hidden_ratio: 4.0
+    moe_top_k: 3
+    moe_layers_indices: [2, 5, 8, 11]
+    noisy_gating: True
+    vfm_projection_configs:
+    vfm_projector_type: mlp
+    vit_checkpoint_path:
+    vfm_training: True
+    out_indices_cfg_for_task:
+      small: [ 2, 5, 8, 11 ]
+      base:  [2, 5, 8, 11]
+      large: [ 5, 11, 17, 23 ]
+      huge: [ 7, 15, 23, 31 ]
+      giant: [ 9, 19, 29, 39 ]
+      so: [ 6, 13, 20, 26 ]
+    vit_type: conditioned_moe
+
+teacher_output_indices:  [2, 5, 8, 11]
+loss_type: cos+l1
+max_epochs: 0
+max_iters: 50000
+eval_freq: 2
+base_lr: 1e-5
+weight_decay: 1e-6
+grad_clip: 10
